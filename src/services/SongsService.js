@@ -98,21 +98,21 @@ class SongsService {
     if (title && performer && limit) {
       return {
         text: 'SELECT * FROM songs WHERE title iLIKE $1 AND performer iLike $2 LIMIT $3',
-        values: [`%${title}%`, `%${performer}%`, `%${limit}%`],
+        values: [`%${title}%`, `%${performer}%`, limit],
       };
     }
 
     if (performer && limit) {
       return {
         text: 'SELECT * FROM songs WHERE performer iLike $1 LIMIT $2',
-        values: [`%${performer}%`, `%${limit}%`],
+        values: [`%${performer}%`, limit],
       };
     }
 
     if (title && limit) {
       return {
         text: 'SELECT * FROM songs WHERE title iLike $1 LIMIT $2',
-        values: [`%${title}%`, `%${limit}%`],
+        values: [`%${title}%`, limit],
       };
     }
 
@@ -140,7 +140,7 @@ class SongsService {
     if (limit) {
       return {
         text: 'SELECT * FROM songs LIMIT $1',
-        values: [`%${limit}%`],
+        values: [limit],
       };
     }
 
