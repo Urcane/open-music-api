@@ -12,6 +12,7 @@
     "rules": {
         "no-console": "off",
         "no-underscore-dangle": "off",
-        "indent": "warn"
+        "indent": "warn",
+        "linebreak-style": 0
     }
 }
