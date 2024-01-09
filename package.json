@@ -1,6 +1,6 @@
 {
   "name": "open-music-api",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "Open Music API, describing your favorites album into api",
   "main": "index.js",
   "scripts": {
