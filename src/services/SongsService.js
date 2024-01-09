@@ -1,3 +1,4 @@
+/* eslint class-methods-use-this: ["error", { "exceptMethods": ["_filteredSongsQuery"] }] */
 const { nanoid } = require('nanoid');
 const { Pool } = require('pg');
 const InvariantError = require('../error/InvariantError');
@@ -93,59 +94,58 @@ class SongsService {
     }
   }
 
-  // eslint-disable-next-line class-methods-use-this
   _filteredSongsQuery({ title, performer, limit }) {
     if (title && performer && limit) {
       return {
-        text: 'SELECT * FROM songs WHERE title iLIKE $1 AND performer iLike $2 LIMIT $3',
+        text: 'SELECT id, title, performer FROM songs WHERE title iLIKE $1 AND performer iLike $2 LIMIT $3',
         values: [`%${title}%`, `%${performer}%`, limit],
       };
     }
 
     if (performer && limit) {
       return {
-        text: 'SELECT * FROM songs WHERE performer iLike $1 LIMIT $2',
+        text: 'SELECT id, title, performer FROM songs WHERE performer iLike $1 LIMIT $2',
         values: [`%${performer}%`, limit],
       };
     }
 
     if (title && limit) {
       return {
-        text: 'SELECT * FROM songs WHERE title iLike $1 LIMIT $2',
+        text: 'SELECT id, title, performer FROM songs WHERE title iLike $1 LIMIT $2',
         values: [`%${title}%`, limit],
       };
     }
 
     if (title && performer) {
       return {
-        text: 'SELECT * FROM songs WHERE title iLIKE $1 AND performer iLike $2',
+        text: 'SELECT id, title, performer FROM songs WHERE title iLIKE $1 AND performer iLike $2',
         values: [`%${title}%`, `%${performer}%`],
       };
     }
 
     if (title) {
       return {
-        text: 'SELECT * FROM songs WHERE title iLIKE $1',
+        text: 'SELECT id, title, performer FROM songs WHERE title iLIKE $1',
         values: [`%${title}%`],
       };
     }
 
     if (performer) {
       return {
-        text: 'SELECT * FROM songs WHERE performer iLIKE $1',
+        text: 'SELECT id, title, performer FROM songs WHERE performer iLIKE $1',
         values: [`%${performer}%`],
       };
     }
 
     if (limit) {
       return {
-        text: 'SELECT * FROM songs LIMIT $1',
+        text: 'SELECT id, title, performer FROM songs LIMIT $1',
         values: [limit],
       };
     }
 
     return {
-      text: 'SELECT * FROM songs',
+      text: 'SELECT id, title, performer FROM songs',
     };
   }
 }
