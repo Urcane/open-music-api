@@ -13,7 +13,7 @@ class PlaylistsService {
 
   async verifyPlaylistOwner(playlistId, userId) {
     const query = {
-      text: 'SELECT * FROM playlists WHERE id = $i',
+      text: 'SELECT * FROM playlists WHERE id = $1',
       values: [playlistId],
     };
 
@@ -30,7 +30,7 @@ class PlaylistsService {
 
   async verifyPlaylistAccess(playlistId, userId) {
     try {
-      this.verifyPlaylistOwner(playlistId, userId);
+      await this.verifyPlaylistOwner(playlistId, userId);
     } catch (error) {
       if (error instanceof NotFoundError) {
         throw error;
@@ -48,7 +48,7 @@ class PlaylistsService {
     const id = `playlist-${nanoid(16)}`;
 
     const query = {
-      text: 'INSERT INTO playlist VALUES($1, $2, $3) RETURNING ID',
+      text: 'INSERT INTO playlists VALUES($1, $2, $3) RETURNING ID',
       values: [id, name, owner],
     };
 
@@ -112,12 +112,20 @@ class PlaylistsService {
 
   async getSongFromPlaylistById(playlistId) {
     const query = {
-      text: `SELECT playlists.id, playlists.name, users.username,
-      songs.id AS song_id, songs.title, songs.performer FROM playlists
-      JOIN playlist_songs ON playlist_songs.playlist_id = playlists.id 
-      JOIN songs ON songs.id = playlist_songs.song_id
-      JOIN users ON users.id = playlists.owner
-      WHERE playlists.id = $1`,
+      text: `
+        SELECT 
+          playlists.id, 
+          playlists.name, 
+          users.username,
+          songs.id AS song_id, 
+          songs.title, 
+          songs.performer 
+        FROM playlists
+        JOIN playlist_songs ON playlist_songs.playlist_id = playlists.id 
+        JOIN users ON users.id = playlists.owner
+        JOIN songs ON songs.id = playlist_songs.song_id
+        WHERE playlists.id = $1
+      `,
       values: [playlistId],
     };
 
@@ -161,8 +169,13 @@ class PlaylistsService {
 
   async getActivities(playlistId) {
     const query = {
-      text: `SELECT users.username, songs.title, playlist_song_activities.action, 
-      playlist_song_activities.time FROM playlist_song_activities
+      text: `
+      SELECT 
+        users.username, 
+        songs.title, 
+        playlist_song_activities.action, 
+        playlist_song_activities.time 
+      FROM playlist_song_activities
       INNER JOIN songs on songs.id = playlist_song_activities.song_id
       INNER JOIN users on users.id = playlist_song_activities.user_id
       WHERE playlist_song_activities.playlist_id = $1

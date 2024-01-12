@@ -41,7 +41,7 @@ const playlistSong = (data) => ({
   id: data[0].id,
   name: data[0].name,
   username: data[0].username,
-  songs: data.map(({ songId, title, performer }) => ({
+  songs: data.map(({ song_id: songId, title, performer }) => ({
     id: songId,
     title,
     performer,
