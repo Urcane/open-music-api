@@ -49,7 +49,7 @@ class SongsService {
   }
 
   async getAllSongs({ title, performer, limit }) {
-    const { rows, rowCount } = await this._filteredSongsQuery(title, performer, limit);
+    const { rows, rowCount } = await this._filteredSongsQuery({ title, performer, limit });
 
     if (!rowCount) {
       return [];
