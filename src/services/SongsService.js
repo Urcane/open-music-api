@@ -1,4 +1,3 @@
-/* eslint class-methods-use-this: ["error", { "exceptMethods": ["_filteredSongsQuery"] }] */
 const { nanoid } = require('nanoid');
 const { Pool } = require('pg');
 const InvariantError = require('../error/InvariantError');
@@ -25,13 +24,13 @@ class SongsService {
       values: [id, title, year, genre, performer, duration, albumId],
     };
 
-    const result = await this._pool.query(query);
+    const { rows } = await this._pool.query(query);
 
-    if (!result.rows[0].id) {
+    if (!rows[0].id) {
       throw new InvariantError('Lagu gagal ditambahkan');
     }
 
-    return result.rows[0].id;
+    return rows[0].id;
   }
 
   async getSongById(id) {
@@ -40,25 +39,23 @@ class SongsService {
       values: [id],
     };
 
-    const result = await this._pool.query(query);
+    const { rows, rowCount } = await this._pool.query(query);
 
-    if (!result.rowCount) {
+    if (!rowCount) {
       throw new NotFoundError('Lagu tidak ditemukan');
     }
 
-    return result.rows.map(singleSongModel)[0];
+    return rows.map(singleSongModel)[0];
   }
 
   async getAllSongs({ title, performer, limit }) {
-    const query = this._filteredSongsQuery({ title, performer, limit });
+    const { rows, rowCount } = await this._filteredSongsQuery(title, performer, limit);
 
-    const result = await this._pool.query(query);
-
-    if (!result.rowCount) {
+    if (!rowCount) {
       return [];
     }
 
-    return result.rows.map(songsModel);
+    return rows.map(songsModel);
   }
 
   async editSongById(id, {
@@ -74,9 +71,9 @@ class SongsService {
       values: [title, year, genre, performer, duration, albumId, id],
     };
 
-    const result = await this._pool.query(query);
+    const { rowCount } = await this._pool.query(query);
 
-    if (!result.rowCount) {
+    if (!rowCount) {
       throw new NotFoundError('Update lagu gagal, Lagu tidak ditemukan!');
     }
   }
@@ -87,66 +84,70 @@ class SongsService {
       values: [id],
     };
 
-    const result = await this._pool.query(query);
+    const { rowCount } = await this._pool.query(query);
 
-    if (!result.rowCount) {
+    if (!rowCount) {
       throw new NotFoundError('Gagal menghapus lagu, Lagu tidak ditemukan');
     }
   }
 
-  _filteredSongsQuery({ title, performer, limit }) {
+  async _filteredSongsQuery({ title, performer, limit }) {
+    let query;
+
     if (title && performer && limit) {
-      return {
+      query = {
         text: 'SELECT id, title, performer FROM songs WHERE title iLIKE $1 AND performer iLike $2 LIMIT $3',
         values: [`%${title}%`, `%${performer}%`, limit],
       };
     }
 
     if (performer && limit) {
-      return {
+      query = {
         text: 'SELECT id, title, performer FROM songs WHERE performer iLike $1 LIMIT $2',
         values: [`%${performer}%`, limit],
       };
     }
 
     if (title && limit) {
-      return {
+      query = {
         text: 'SELECT id, title, performer FROM songs WHERE title iLike $1 LIMIT $2',
         values: [`%${title}%`, limit],
       };
     }
 
     if (title && performer) {
-      return {
+      query = {
         text: 'SELECT id, title, performer FROM songs WHERE title iLIKE $1 AND performer iLike $2',
         values: [`%${title}%`, `%${performer}%`],
       };
     }
 
     if (title) {
-      return {
+      query = {
         text: 'SELECT id, title, performer FROM songs WHERE title iLIKE $1',
         values: [`%${title}%`],
       };
     }
 
     if (performer) {
-      return {
+      query = {
         text: 'SELECT id, title, performer FROM songs WHERE performer iLIKE $1',
         values: [`%${performer}%`],
       };
     }
 
     if (limit) {
-      return {
+      query = {
         text: 'SELECT id, title, performer FROM songs LIMIT $1',
         values: [limit],
       };
     }
 
-    return {
+    query = {
       text: 'SELECT id, title, performer FROM songs',
     };
+
+    return this._pool.query(query);
   }
 }
 
