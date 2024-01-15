@@ -31,7 +31,7 @@ const albumSong = (data) => ({
   name: data[0].name,
   year: data[0].year,
   coverUrl: data[0].cover,
-  songs: data[0].song ? data.map(songsModel) : null,
+  songs: data[0].id ? data.map(songsModel) : [],
 });
 
 const playlistSong = (data) => ({
