@@ -99,53 +99,41 @@ class SongsService {
         text: 'SELECT id, title, performer FROM songs WHERE title iLIKE $1 AND performer iLike $2 LIMIT $3',
         values: [`%${title}%`, `%${performer}%`, limit],
       };
-    }
-
-    if (performer && limit) {
+    } else if (performer && limit) {
       query = {
         text: 'SELECT id, title, performer FROM songs WHERE performer iLike $1 LIMIT $2',
         values: [`%${performer}%`, limit],
       };
-    }
-
-    if (title && limit) {
+    } else if (title && limit) {
       query = {
         text: 'SELECT id, title, performer FROM songs WHERE title iLike $1 LIMIT $2',
         values: [`%${title}%`, limit],
       };
-    }
-
-    if (title && performer) {
+    } else if (title && performer) {
       query = {
         text: 'SELECT id, title, performer FROM songs WHERE title iLIKE $1 AND performer iLike $2',
         values: [`%${title}%`, `%${performer}%`],
       };
-    }
-
-    if (title) {
+    } else if (title) {
       query = {
         text: 'SELECT id, title, performer FROM songs WHERE title iLIKE $1',
         values: [`%${title}%`],
       };
-    }
-
-    if (performer) {
+    } else if (performer) {
       query = {
         text: 'SELECT id, title, performer FROM songs WHERE performer iLIKE $1',
         values: [`%${performer}%`],
       };
-    }
-
-    if (limit) {
+    } else if (limit) {
       query = {
         text: 'SELECT id, title, performer FROM songs LIMIT $1',
         values: [limit],
       };
+    } else {
+      query = {
+        text: 'SELECT id, title, performer FROM songs',
+      };
     }
-
-    query = {
-      text: 'SELECT id, title, performer FROM songs',
-    };
 
     return this._pool.query(query);
   }
