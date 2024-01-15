@@ -39,6 +39,7 @@ class AlbumsService {
           songs.id, 
           songs.title, 
           songs.performer 
+        FROM albums
         LEFT JOIN songs 
           ON songs.album_id = albums.id 
         WHERE albums.id = $1
@@ -52,7 +53,7 @@ class AlbumsService {
       throw new NotFoundError('Album tidak ditemukan!');
     }
 
-    return albumSong(rows[0], await this.getSongsFromAlbumId(id));
+    return albumSong(rows);
   }
 
   async editAlbumById(id, { name, year }) {
@@ -117,6 +118,11 @@ class AlbumsService {
   }
 
   async addLikeToAlbum(albumId, userId) {
+    const like = await this.checkUserLikeAlbum(albumId, userId);
+    if (!like) {
+      throw new InvariantError('Album sudah pernah di like sebelumnya.');
+    }
+
     const likeId = `albumLike-${nanoid(16)}`;
     const query = {
       text: 'INSERT INTO user_album_likes VALUES($1, $2, $3) RETURNING id',
@@ -133,6 +139,11 @@ class AlbumsService {
   }
 
   async deleteLikeFromAlbum(albumId, userId) {
+    const like = await this.checkUserLikeAlbum(albumId, userId);
+    if (like) {
+      throw new InvariantError('Album belum pernah di like sebelumnya.');
+    }
+
     const query = {
       text: 'DELETE FROM user_album_likes WHERE album_id = $1 AND user_id = $2 RETURNING id',
       values: [albumId, userId],

@@ -85,17 +85,11 @@ class AlbumsHandler {
 
     await this._albumService.checkAlbumIfExist(albumId);
 
-    const like = await this._albumService.checkUserLikeAlbum(albumId, userId);
-
-    if (like) {
-      await this._albumService.addLikeToAlbum(albumId, userId);
-    } else {
-      await this._albumService.deleteLikeFromAlbum(albumId, userId);
-    }
+    await this._albumService.addLikeToAlbum(albumId, userId);
 
     const response = h.response({
       status: 'success',
-      message: like ? 'Berhasil Menyukai Album' : 'Berhasil membatalkan suka album',
+      message: 'Berhasil Menyukai Album',
     });
     response.code(201);
     return response;
@@ -106,7 +100,9 @@ class AlbumsHandler {
 
     await this._albumService.checkAlbumIfExist(id);
 
-    const { likeCount, dataSource } = await this._albumService.countAlbumLike(id);
+    const { likeCount, dataSource } = await this._albumService.countAlbumLike(
+      id,
+    );
 
     const response = h.response({
       status: 'success',
@@ -115,6 +111,22 @@ class AlbumsHandler {
       },
     });
     response.header('X-Data-Source', dataSource);
+    return response;
+  }
+
+  async deleteLikeAlbumByIdHandler(request, h) {
+    const { id: albumId } = request.params;
+    const { id: userId } = request.auth.credentials;
+
+    await this._albumService.checkAlbumIfExist(albumId);
+
+    await this._albumService.deleteLikeFromAlbum(albumId, userId);
+
+    const response = h.response({
+      status: 'success',
+      message: 'Berhasil membatalkan suka album',
+    });
+    response.code(200);
     return response;
   }
 }

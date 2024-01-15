@@ -31,6 +31,7 @@ const routes = (handler) => [
         multipart: true,
         output: 'stream',
         maxBytes: 512000,
+        parse: true,
       },
     },
   },
@@ -47,6 +48,14 @@ const routes = (handler) => [
     method: 'POST',
     path: '/albums/{id}/likes',
     handler: handler.postLikeAlbumByIdHandler,
+    options: {
+      auth: 'openmusic_jwt',
+    },
+  },
+  {
+    method: 'DELETE',
+    path: '/albums/{id}/likes',
+    handler: handler.deleteLikeAlbumByIdHandler,
     options: {
       auth: 'openmusic_jwt',
     },

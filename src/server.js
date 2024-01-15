@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const Hapi = require('@hapi/hapi');
 const Jwt = require('@hapi/jwt');
-const Inert = require('@hapi/inert');
+const inert = require('@hapi/inert');
 const path = require('path');
 const config = require('./utils/config');
 const ClientError = require('./error/ClientError');
@@ -47,8 +47,13 @@ const init = async () => {
   const authenticationsService = new AuthenticationsService();
   const usersService = new UsersService();
   const collaborationsService = new CollaborationService(cacheService);
-  const playlistsService = new PlaylistsService(collaborationsService, cacheService);
-  const storageService = new StorageService(path.resolve(__dirname, './storage/albumsCover'));
+  const playlistsService = new PlaylistsService(
+    collaborationsService,
+    cacheService,
+  );
+  const storageService = new StorageService(
+    path.resolve(__dirname, './storage/albumsCover'),
+  );
 
   const server = Hapi.server({
     host: config.app.host,
@@ -65,12 +70,12 @@ const init = async () => {
       plugin: Jwt,
     },
     {
-      plugin: Inert,
+      plugin: inert,
     },
   ]);
 
   server.auth.strategy('openmusic_jwt', 'jwt', {
-    keys: config.jwt.tokenAge,
+    keys: config.jwt.accessKey,
     verify: {
       aud: false,
       iss: false,
