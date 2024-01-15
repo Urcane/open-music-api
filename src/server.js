@@ -32,7 +32,7 @@ const collaborations = require('./api/collaborations');
 const CollaborationService = require('./services/CollaborationsService');
 const CollaborationValidator = require('./validator/collaborations');
 
-const exports = require('./api/exports');
+const _exports = require('./api/exports');
 const ExportsService = require('./services/ExportsService');
 const ExportValidator = require('./validator/exports');
 
@@ -135,7 +135,7 @@ const init = async () => {
       },
     },
     {
-      plugin: exports,
+      plugin: _exports,
       options: {
         ExportsService,
         playlistsService,
