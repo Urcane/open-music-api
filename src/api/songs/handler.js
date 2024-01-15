@@ -25,16 +25,19 @@ class SongsHandler {
     return result;
   }
 
-  async getSongByIdHandler(request) {
+  async getSongByIdHandler(request, h) {
     const { id } = request.params;
-    const song = await this._service.getSongById(id);
+    const { dataSource, song } = await this._service.getSongById(id);
 
-    return {
+    const response = h.response({
       status: 'success',
       data: {
         song,
       },
-    };
+    });
+
+    response.header('X-Data-Source', dataSource);
+    return response;
   }
 
   async putSongByIdHandler(request) {

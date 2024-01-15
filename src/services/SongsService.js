@@ -1,4 +1,3 @@
-/* eslint class-methods-use-this: ["error", { "exceptMethods": ["_filteredSongsQuery"] }] */
 const { nanoid } = require('nanoid');
 const { Pool } = require('pg');
 const InvariantError = require('../error/InvariantError');
@@ -6,8 +5,9 @@ const { singleSongModel, songsModel } = require('../utils');
 const NotFoundError = require('../error/NotFoundError');
 
 class SongsService {
-  constructor() {
+  constructor(cacheService) {
     this._pool = new Pool();
+    this._cacheService = cacheService;
   }
 
   async addSong({
@@ -25,40 +25,53 @@ class SongsService {
       values: [id, title, year, genre, performer, duration, albumId],
     };
 
-    const result = await this._pool.query(query);
+    const { rows } = await this._pool.query(query);
 
-    if (!result.rows[0].id) {
+    if (!rows[0].id) {
       throw new InvariantError('Lagu gagal ditambahkan');
     }
 
-    return result.rows[0].id;
+    return rows[0].id;
   }
 
   async getSongById(id) {
-    const query = {
-      text: 'SELECT * FROM songs where id = $1',
-      values: [id],
-    };
+    try {
+      const result = await this._cacheService.get(`song:${id}`);
+      return {
+        dataSource: 'cache',
+        song: JSON.parse(result),
+      };
+    } catch {
+      const query = {
+        text: 'SELECT * FROM songs where id = $1',
+        values: [id],
+      };
 
-    const result = await this._pool.query(query);
+      const { rows, rowCount } = await this._pool.query(query);
 
-    if (!result.rowCount) {
-      throw new NotFoundError('Lagu tidak ditemukan');
+      if (!rowCount) {
+        throw new NotFoundError('Lagu tidak ditemukan');
+      }
+
+      const mappedResult = rows.map(singleSongModel)[0];
+
+      await this._cacheService.set(`song:${id}`, JSON.stringify(mappedResult));
+
+      return {
+        dataSource: 'database',
+        song: mappedResult,
+      };
     }
-
-    return result.rows.map(singleSongModel)[0];
   }
 
   async getAllSongs({ title, performer, limit }) {
-    const query = this._filteredSongsQuery({ title, performer, limit });
+    const { rows, rowCount } = await this._filteredSongsQuery({ title, performer, limit });
 
-    const result = await this._pool.query(query);
-
-    if (!result.rowCount) {
+    if (!rowCount) {
       return [];
     }
 
-    return result.rows.map(songsModel);
+    return rows.map(songsModel);
   }
 
   async editSongById(id, {
@@ -74,11 +87,13 @@ class SongsService {
       values: [title, year, genre, performer, duration, albumId, id],
     };
 
-    const result = await this._pool.query(query);
+    const { rowCount } = await this._pool.query(query);
 
-    if (!result.rowCount) {
+    if (!rowCount) {
       throw new NotFoundError('Update lagu gagal, Lagu tidak ditemukan!');
     }
+
+    await this._cacheService.delete(`song:${id}`);
   }
 
   async deleteSongById(id) {
@@ -87,66 +102,60 @@ class SongsService {
       values: [id],
     };
 
-    const result = await this._pool.query(query);
+    const { rowCount } = await this._pool.query(query);
 
-    if (!result.rowCount) {
+    if (!rowCount) {
       throw new NotFoundError('Gagal menghapus lagu, Lagu tidak ditemukan');
     }
+
+    await this._cacheService.delete(`song:${id}`);
   }
 
-  _filteredSongsQuery({ title, performer, limit }) {
+  async _filteredSongsQuery({ title, performer, limit }) {
+    let query;
+
     if (title && performer && limit) {
-      return {
+      query = {
         text: 'SELECT id, title, performer FROM songs WHERE title iLIKE $1 AND performer iLike $2 LIMIT $3',
         values: [`%${title}%`, `%${performer}%`, limit],
       };
-    }
-
-    if (performer && limit) {
-      return {
+    } else if (performer && limit) {
+      query = {
         text: 'SELECT id, title, performer FROM songs WHERE performer iLike $1 LIMIT $2',
         values: [`%${performer}%`, limit],
       };
-    }
-
-    if (title && limit) {
-      return {
+    } else if (title && limit) {
+      query = {
         text: 'SELECT id, title, performer FROM songs WHERE title iLike $1 LIMIT $2',
         values: [`%${title}%`, limit],
       };
-    }
-
-    if (title && performer) {
-      return {
+    } else if (title && performer) {
+      query = {
         text: 'SELECT id, title, performer FROM songs WHERE title iLIKE $1 AND performer iLike $2',
         values: [`%${title}%`, `%${performer}%`],
       };
-    }
-
-    if (title) {
-      return {
+    } else if (title) {
+      query = {
         text: 'SELECT id, title, performer FROM songs WHERE title iLIKE $1',
         values: [`%${title}%`],
       };
-    }
-
-    if (performer) {
-      return {
+    } else if (performer) {
+      query = {
         text: 'SELECT id, title, performer FROM songs WHERE performer iLIKE $1',
         values: [`%${performer}%`],
       };
-    }
-
-    if (limit) {
-      return {
+    } else if (limit) {
+      query = {
         text: 'SELECT id, title, performer FROM songs LIMIT $1',
         values: [limit],
       };
+    } else {
+      query = {
+        text: 'SELECT id, title, performer FROM songs',
+      };
     }
 
-    return {
-      text: 'SELECT id, title, performer FROM songs',
-    };
+    return this._pool.query(query);
   }
 }
 
