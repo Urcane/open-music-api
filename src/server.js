@@ -2,6 +2,9 @@ require('dotenv').config();
 
 const Hapi = require('@hapi/hapi');
 const Jwt = require('@hapi/jwt');
+const Inert = require('@hapi/inert');
+const path = require('path');
+const config = require('./utils/config');
 const ClientError = require('./error/ClientError');
 
 const albums = require('./api/albums');
@@ -29,17 +32,27 @@ const collaborations = require('./api/collaborations');
 const CollaborationService = require('./services/CollaborationsService');
 const CollaborationValidator = require('./validator/collaborations');
 
+const exports = require('./api/exports');
+const ExportsService = require('./services/ExportsService');
+const ExportValidator = require('./validator/exports');
+
+const CacheService = require('./services/CacheService');
+
+const StorageService = require('./services/StorageService');
+
 const init = async () => {
-  const albumsService = new AlbumsService();
+  const cacheService = new CacheService();
+  const albumsService = new AlbumsService(cacheService);
   const songsService = new SongsService();
   const authenticationsService = new AuthenticationsService();
   const usersService = new UsersService();
   const collaborationsService = new CollaborationService();
   const playlistsService = new PlaylistsService(collaborationsService);
+  const storageService = new StorageService(path.resolve(__dirname, './storage/albumsCover'));
 
   const server = Hapi.server({
-    port: process.env.APP_PORT,
-    host: process.env.APP_HOST,
+    host: config.app.host,
+    port: config.app.port,
     routes: {
       cors: {
         origin: ['*'],
@@ -51,15 +64,18 @@ const init = async () => {
     {
       plugin: Jwt,
     },
+    {
+      plugin: Inert,
+    },
   ]);
 
   server.auth.strategy('openmusic_jwt', 'jwt', {
-    keys: process.env.ACCESS_TOKEN_KEY,
+    keys: config.jwt.tokenAge,
     verify: {
       aud: false,
       iss: false,
       sub: false,
-      maxAgeSec: process.env.ACCESS_TOKEN_AGE,
+      maxAgeSec: config.jwt.tokenAge,
     },
     validate: (artifacts) => ({
       isValid: true,
@@ -73,7 +89,8 @@ const init = async () => {
     {
       plugin: albums,
       options: {
-        service: albumsService,
+        albumsService,
+        storageService,
         validator: AlbumValidator,
       },
     },
@@ -115,6 +132,14 @@ const init = async () => {
         playlistsService,
         usersService,
         validator: CollaborationValidator,
+      },
+    },
+    {
+      plugin: exports,
+      options: {
+        ExportsService,
+        playlistsService,
+        validator: ExportValidator,
       },
     },
   ]);

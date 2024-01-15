@@ -76,7 +76,7 @@ class UsersService {
     if (!rowCount) {
       throw new NotFoundError('User tidak ditemukan');
     }
-    return rows[0];
+    return rows[0].username;
   }
 }
 
